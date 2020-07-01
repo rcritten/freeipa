@@ -42,7 +42,7 @@ from ipaserver.install import (
     adtrust, adtrustinstance, bindinstance, ca, dns, dsinstance,
     httpinstance, installutils, kra, krbinstance,
     otpdinstance, custodiainstance, replication, service,
-    sysupgrade)
+    sysupgrade, cainstance)
 from ipaserver.install.installutils import (
     BadHostError, get_fqdn, get_server_ip_address,
     load_pkcs12, read_password, verify_fqdn, update_hosts_file,
@@ -313,6 +313,19 @@ def remove_master_from_managed_topology(api_instance, options):
     except Exception as e:
         # if the master was already deleted we will just get a warning
         logger.warning("Failed to delete master: %s", e)
+
+
+def cleanup_dogtag_server_specific_data():
+    """
+    There are data in Dogtag database related to specific servers.
+    Some of these data should be left alone, e.g. range assignments.
+    Some of these data should be cleaned up; that's what this
+    subroutine does.
+
+    """
+    # remove ACME user
+    acme_uid = cainstance.CAInstance.acme_uid(api.env.host)
+    cainstance.CAInstance.delete_user(acme_uid)
 
 
 @common_cleanup
@@ -1103,6 +1116,8 @@ def uninstall_check(installer):
         dns.uninstall_check(options)
 
         ca.uninstall_check(options)
+
+        cleanup_dogtag_server_specific_data()
 
         if domain_level == DOMAIN_LEVEL_0:
             rm = replication.ReplicationManager(
