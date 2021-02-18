@@ -70,7 +70,7 @@ jobs:
         build_url: '{fedora-latest/build_url}'
         test_suite: test_integration/test_ipahealthcheck.py::TestIpaHealthCheck
         template: *ci-master-latest
-        timeout: 3600
+        timeout: 4800
         topology: *master_1repl
 
   fedora-latest/temp_commit_2:
@@ -82,7 +82,7 @@ jobs:
         build_url: '{fedora-latest/build_url}'
         test_suite: test_integration/test_ipahealthcheck.py::TestIpaHealthCheck
         template: *ci-master-latest
-        timeout: 3600
+        timeout: 4800
         topology: *master_1repl
 
   fedora-latest/temp_commit_3:
@@ -94,7 +94,7 @@ jobs:
         build_url: '{fedora-latest/build_url}'
         test_suite: test_integration/test_ipahealthcheck.py::TestIpaHealthCheck
         template: *ci-master-latest
-        timeout: 3600
+        timeout: 4800
         topology: *master_1repl
 
   fedora-latest/temp_commit_4:
@@ -106,7 +106,7 @@ jobs:
         build_url: '{fedora-latest/build_url}'
         test_suite: test_integration/test_ipahealthcheck.py::TestIpaHealthCheck
         template: *ci-master-latest
-        timeout: 3600
+        timeout: 4800
         topology: *master_1repl
 
   fedora-latest/temp_commit_5:
@@ -118,5 +118,5 @@ jobs:
         build_url: '{fedora-latest/build_url}'
         test_suite: test_integration/test_ipahealthcheck.py::TestIpaHealthCheck
         template: *ci-master-latest
-        timeout: 3600
+        timeout: 4800
         topology: *master_1repl
