@@ -1019,8 +1019,6 @@ class CAInstance(DogtagInstance):
             if path:
                 run_with_retry(iface.remove_known_ca, path)
 
-        cmonger.stop()
-
         # remove ipa-pki-wait-running config
         ipautil.remove_file(paths.SYSTEMD_PKI_TOMCAT_IPA_CONF)
         try:
