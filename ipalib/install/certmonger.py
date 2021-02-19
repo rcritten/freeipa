@@ -796,3 +796,23 @@ def wait_for_request(request_id, timeout=120):
         sleep()
 
     return state
+
+
+def run_with_retry(f, *args, retries=5):
+    """Execute the function f retries times
+
+       On success returns the result of the function
+
+       On failure raises either a DBusException or whatever
+       exception the function raises.
+    """
+    exc = None
+    for i in range(retries):
+        logger.debug(
+            'Attempt %d of %s', i + 1, f._method_name
+        )
+        try:
+            return f(*args)
+        except dbus.exceptions.DBusException as e:
+            exc = e
+    raise exc
