@@ -809,11 +809,15 @@ def run_with_retry(f, *args, retries=5):
     """
     exc = None
     for i in range(retries):
-        logger.debug(
-            'Attempt %d of %s', i + 1, f._method_name
-        )
+        if args:
+            logger.debug(
+                'Attempt %d of %s %s', i + 1, f._method_name, *args
+            )
+        else:
+            logger.debug('Attempt %d of %s', i + 1, f._method_name)
         try:
             return f(*args)
         except dbus.exceptions.DBusException as e:
             exc = e
+        time.sleep(5)
     raise exc
