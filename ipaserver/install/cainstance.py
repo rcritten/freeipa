@@ -44,6 +44,7 @@ from ipalib import x509
 from ipalib import errors
 import ipalib.constants
 from ipalib.install import certmonger
+from ipalib.install.certmonger import run_with_retry
 from ipaplatform import services
 from ipaplatform.paths import paths
 from ipaplatform.tasks import tasks
@@ -1014,9 +1015,9 @@ class CAInstance(DogtagInstance):
         iface = dbus.Interface(obj, 'org.fedorahosted.certmonger')
         for suffix in ['', '-reuse', '-selfsigned']:
             name = ipalib.constants.RENEWAL_CA_NAME + suffix
-            path = iface.find_ca_by_nickname(name)
+            path = run_with_retry(iface.find_ca_by_nickname, name)
             if path:
-                iface.remove_known_ca(path)
+                run_with_retry(iface.remove_known_ca, path)
 
         cmonger.stop()
 
@@ -1056,13 +1057,14 @@ class CAInstance(DogtagInstance):
             obj = bus.get_object('org.fedorahosted.certmonger',
                                  '/org/fedorahosted/certmonger')
             iface = dbus.Interface(obj, 'org.fedorahosted.certmonger')
-            path = iface.find_ca_by_nickname('dogtag-ipa-renew-agent')
+            path = run_with_retry(iface.find_ca_by_nickname,
+                                  'dogtag-ipa-renew-agent')
             if path:
                 ca_obj = bus.get_object('org.fedorahosted.certmonger', path)
                 ca_iface = dbus.Interface(ca_obj,
                                           'org.freedesktop.DBus.Properties')
-                ca_iface.Set('org.fedorahosted.certmonger.ca',
-                             'external-helper', helper)
+                run_with_retry(ca_iface.Set, 'org.fedorahosted.certmonger.ca',
+                               'external-helper', helper)
 
     @staticmethod
     def configure_agent_renewal():

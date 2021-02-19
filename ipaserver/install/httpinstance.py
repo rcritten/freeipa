@@ -33,6 +33,7 @@ from augeas import Augeas
 import dbus
 
 from ipalib.install import certmonger
+from ipalib.install.certmonger import run_with_retry
 from ipapython import ipaldap
 from ipaserver.install import replication
 from ipaserver.install import service
@@ -301,21 +302,23 @@ class HTTPInstance(service.Service):
             obj = bus.get_object('org.fedorahosted.certmonger',
                                  '/org/fedorahosted/certmonger')
             iface = dbus.Interface(obj, 'org.fedorahosted.certmonger')
-            path = iface.find_ca_by_nickname('IPA')
+            path = run_with_retry(iface.find_ca_by_nickname, 'IPA')
             if path:
                 ca_obj = bus.get_object('org.fedorahosted.certmonger', path)
                 ca_iface = dbus.Interface(ca_obj,
                                           'org.freedesktop.DBus.Properties')
-                helper = ca_iface.Get('org.fedorahosted.certmonger.ca',
-                                      'external-helper')
+                helper = run_with_retry(ca_iface.Get,
+                                        'org.fedorahosted.certmonger.ca',
+                                        'external-helper')
                 if helper:
                     args = shlex.split(helper)
                     if args[0] != paths.IPA_SERVER_GUARD:
                         self.backup_state('certmonger_ipa_helper', helper)
                         args = [paths.IPA_SERVER_GUARD] + args
                         helper = ' '.join(pipes.quote(a) for a in args)
-                        ca_iface.Set('org.fedorahosted.certmonger.ca',
-                                     'external-helper', helper)
+                        run_with_retry(ca_iface.Set,
+                                       'org.fedorahosted.certmonger.ca',
+                                       'external-helper', helper)
         finally:
             if certmonger_stopped:
                 certmonger.stop()
@@ -524,13 +527,14 @@ class HTTPInstance(service.Service):
             obj = bus.get_object('org.fedorahosted.certmonger',
                                  '/org/fedorahosted/certmonger')
             iface = dbus.Interface(obj, 'org.fedorahosted.certmonger')
-            path = iface.find_ca_by_nickname('IPA')
+            path = run_with_retry(iface.find_ca_by_nickname, 'IPA')
             if path:
                 ca_obj = bus.get_object('org.fedorahosted.certmonger', path)
                 ca_iface = dbus.Interface(ca_obj,
                                           'org.freedesktop.DBus.Properties')
-                ca_iface.Set('org.fedorahosted.certmonger.ca',
-                             'external-helper', helper)
+                run_with_retry(ca_iface.Set,
+                               'org.fedorahosted.certmonger.ca',
+                               'external-helper', helper)
 
         for f in [paths.HTTPD_IPA_CONF, paths.HTTPD_SSL_CONF,
                   paths.HTTPD_SSL_SITE_CONF, paths.HTTPD_NSS_CONF]:
