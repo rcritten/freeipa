@@ -799,7 +799,7 @@ def wait_for_request(request_id, timeout=120):
     return state
 
 
-def run_with_retry(f, *args, retries=5):
+def run_with_retry(f, *args, retries=25):
     """Execute the function f retries times
 
        On success returns the result of the function
