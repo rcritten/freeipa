@@ -799,7 +799,7 @@ def wait_for_request(request_id, timeout=120):
     return state
 
 
-def run_with_retry(f, *args, retries=25):
+def run_with_retry(f, *args, retries=15):
     """Execute the function f retries times
 
        On success returns the result of the function
@@ -808,16 +808,24 @@ def run_with_retry(f, *args, retries=25):
        exception the function raises.
     """
     exc = None
-    for i in range(retries):
-        if args:
-            logger.debug(
-                'Attempt %d of %s %s', i + 1, f._method_name, *args
-            )
-        else:
-            logger.debug('Attempt %d of %s', i + 1, f._method_name)
+    for j in range(2):
         try:
-            return f(*args)
+            for i in range(retries):
+                if args:
+                    logger.debug(
+                        'Attempt %d of %s %s', i + 1, f._method_name, *args
+                    )
+                else:
+                    logger.debug('Attempt %d of %s', i + 1, f._method_name)
+                try:
+                    return f(*args)
+                except dbus.exceptions.DBusException as e:
+                    exc = e
+                time.sleep(2)
+            raise exc
         except dbus.exceptions.DBusException as e:
-            exc = e
-        time.sleep(5)
+            cmonger = services.knownservices.certmonger
+            cmonger.restart()
+            time.sleep(30)
+            
     raise exc
