@@ -820,6 +820,7 @@ def run_with_retry(f, *args, retries=15):
                 try:
                     return f(*args)
                 except dbus.exceptions.DBusException as e:
+                    logger.debug(str(e))
                     exc = e
                 time.sleep(2)
             raise exc
