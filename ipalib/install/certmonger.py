@@ -835,6 +835,16 @@ def run_with_retry(f, *args, retries=15):
             )
             logger.debug('stdout %s', result.output)
             logger.debug('stderr %s', result.error_output)
+            result = run(
+                ['dbus-send', '--system',
+                 '--dest=org.freedesktop.DBus',
+                 '--type=method_call', '--print-reply',
+                 '/',
+                 'org.freedesktop.DBus.ReloadConfig'],
+                raiseonerr=False
+            )
+            logger.debug('stdout %s', result.output)
+            logger.debug('stderr %s', result.error_output)
             cmonger = services.knownservices.certmonger
             cmonger.restart()
             time.sleep(30)
