@@ -34,7 +34,7 @@ import tempfile
 from ipalib import api
 from ipalib.constants import CA_DBUS_TIMEOUT
 from ipapython.dn import DN
-from ipapython.ipautil import Sleeper
+from ipapython.ipautil import Sleeper, run
 from ipaplatform.paths import paths
 from ipaplatform import services
 
@@ -808,7 +808,7 @@ def run_with_retry(f, *args, retries=15):
        exception the function raises.
     """
     exc = None
-    for j in range(2):
+    for _j in range(2):
         try:
             for i in range(retries):
                 if args:
@@ -824,8 +824,18 @@ def run_with_retry(f, *args, retries=15):
                 time.sleep(2)
             raise exc
         except dbus.exceptions.DBusException as e:
+            result = run(
+                ['dbus-send', '--system',
+                 '--dest=org.freedesktop.DBus',
+                 '--type=method_call', '--print-reply',
+                 '/org/freedesktop/DBus',
+                 'org.freedesktop.DBus.ListNames'],
+                raiseonerr=False
+            )
+            logger.debug('stdout %s', result.output)
+            logger.debug('stderr %s', result.error_output)
             cmonger = services.knownservices.certmonger
             cmonger.restart()
             time.sleep(30)
-            
+
     raise exc
