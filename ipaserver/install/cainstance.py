@@ -1006,8 +1006,8 @@ class CAInstance(DogtagInstance):
         if not services.knownservices.dbus.is_running():
             # some platforms protect dbus with RefuseManualStart=True
             services.knownservices.dbus.start()
-        cmonger = services.knownservices.certmonger
-        cmonger.start()
+        # cmonger = services.knownservices.certmonger
+        # cmonger.start()
 
         bus = dbus.SystemBus()
         obj = bus.get_object('org.fedorahosted.certmonger',

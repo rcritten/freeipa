@@ -463,11 +463,11 @@ class DogtagInstance(service.Service):
             "Configuring certmonger to stop tracking system certificates "
             "for %s", self.subsystem)
 
-        cmonger = services.knownservices.certmonger
+        # cmonger = services.knownservices.certmonger
         if not services.knownservices.dbus.is_running():
             # some platforms protect dbus with RefuseManualStart=True
             services.knownservices.dbus.start()
-        cmonger.start()
+        # cmonger.start()
 
         for nickname in self.tracking_reqs:
             try:

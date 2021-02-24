@@ -34,7 +34,7 @@ import tempfile
 from ipalib import api
 from ipalib.constants import CA_DBUS_TIMEOUT
 from ipapython.dn import DN
-from ipapython.ipautil import Sleeper
+from ipapython.ipautil import Sleeper, run
 from ipaplatform.paths import paths
 from ipaplatform import services
 
@@ -169,6 +169,7 @@ class _certmonger(_cm_dbus_object):
             try:
                 self._bus.get_name_owner(DBUS_CM_NAME)
             except dbus.DBusException:
+                logger.error("Trying to start certmonger: %s", e)
                 try:
                     services.knownservices.certmonger.start()
                 except Exception as e:
@@ -822,6 +823,27 @@ def run_with_retry(f, *args):
             # Create a new dbus connection
             cm = _certmonger()
             f = getattr(cm.obj_if, f._method_name)
+
+            # A goof, let's see if we can get requests
+            run(['dbus-send', '--system',
+                 '--dest=org.fedorahosted.certmonger',
+                 '--type=method_call', '--print-reply',
+                 '/org/fedorahosted/certmonger',
+                 'org.fedorahosted.certmonger.get_requests'],
+                raiseonerr=False)
+            run(['dbus-send', '--system', '--dest=org.freedesktop.DBus',
+                 '--type=method_call', '--print-reply',
+                 '/org/freedesktop/DBus',
+                 'org.freedesktop.DBus.ListNames'], raiseonerr=False)
+
+            dir = paths.PKI_TOMCAT_ALIAS_DIR
+            criteria = {'cert-storage': 'NSSDB', 'key-storage': 'NSSDB',
+                        'cert-database': dir, 'key-database': dir, }
+            try:
+                r = cm.obj_if.get_requests(criteria)
+                logger.debug(str(r))
+            except Exception as pe:
+                logger.debug(str(pe))
             exc = e
         time.sleep(2)
     raise exc
