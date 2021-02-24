@@ -34,7 +34,7 @@ import tempfile
 from ipalib import api
 from ipalib.constants import CA_DBUS_TIMEOUT
 from ipapython.dn import DN
-from ipapython.ipautil import Sleeper, run
+from ipapython.ipautil import Sleeper
 from ipaplatform.paths import paths
 from ipaplatform import services
 
@@ -799,7 +799,7 @@ def wait_for_request(request_id, timeout=120):
     return state
 
 
-def run_with_retry(f, *args, retries=15):
+def run_with_retry(f, *args):
     """Execute the function f retries times
 
        On success returns the result of the function
@@ -808,45 +808,20 @@ def run_with_retry(f, *args, retries=15):
        exception the function raises.
     """
     exc = None
-    for _j in range(2):
+    for i in range(15):
+        if args:
+            logger.debug(
+                'Attempt %d of %s %s', i + 1, f._method_name, *args
+            )
+        else:
+            logger.debug('Attempt %d of %s', i + 1, f._method_name)
         try:
-            for i in range(retries):
-                if args:
-                    logger.debug(
-                        'Attempt %d of %s %s', i + 1, f._method_name, *args
-                    )
-                else:
-                    logger.debug('Attempt %d of %s', i + 1, f._method_name)
-                try:
-                    return f(*args)
-                except dbus.exceptions.DBusException as e:
-                    logger.debug(str(e))
-                    exc = e
-                time.sleep(2)
-            raise exc
+            return f(*args)
         except dbus.exceptions.DBusException as e:
-            result = run(
-                ['dbus-send', '--system',
-                 '--dest=org.freedesktop.DBus',
-                 '--type=method_call', '--print-reply',
-                 '/org/freedesktop/DBus',
-                 'org.freedesktop.DBus.ListNames'],
-                raiseonerr=False
-            )
-            logger.debug('stdout %s', result.output)
-            logger.debug('stderr %s', result.error_output)
-            result = run(
-                ['dbus-send', '--system',
-                 '--dest=org.freedesktop.DBus',
-                 '--type=method_call', '--print-reply',
-                 '/',
-                 'org.freedesktop.DBus.ReloadConfig'],
-                raiseonerr=False
-            )
-            logger.debug('stdout %s', result.output)
-            logger.debug('stderr %s', result.error_output)
-            cmonger = services.knownservices.certmonger
-            cmonger.restart()
-            time.sleep(30)
-
+            logger.debug(str(e))
+            # Create a new dbus connection
+            cm = _certmonger()
+            f = getattr(cm.obj_if, f._method_name)
+            exc = e
+        time.sleep(2)
     raise exc
