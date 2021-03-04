@@ -814,10 +814,24 @@ def promote_check(installer):
     env._bootstrap(context='installer', confdir=paths.ETC_IPA, log=None)
     env._finalize_core(**dict(constants.DEFAULT_CONFIG))
 
+    # If adding a CA then force the ra_plugin to dogtag so the dogtag
+    # backend plugins are loaded in api.finalize(). This is necessary
+    # so the backend interfaces are available to the installer.
+    # Also force enable_ra to False in this initialization so that
+    # all CA communication goes to to the appropriate remote server
+    # and is not attempted to be handled locally. This value will be
+    # correctly written to default.conf later in the installation process.
+    if options.setup_ca:
+        ra_plugin = 'dogtag'
+    else:
+        ra_plugin = 'None'
+
     # pylint: disable=no-member
     xmlrpc_uri = 'https://{}/ipa/xml'.format(ipautil.format_netloc(env.host))
     api.bootstrap(in_server=True,
                   context='installer',
+                  ra_plugin=ra_plugin,
+                  enable_ra=False,
                   confdir=paths.ETC_IPA,
                   ldap_uri=ipaldap.realm_to_ldapi_uri(env.realm),
                   xmlrpc_uri=xmlrpc_uri)
