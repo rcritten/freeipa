@@ -835,6 +835,8 @@ def run_with_retry(f, *args):
                  '--type=method_call', '--print-reply',
                  '/org/freedesktop/DBus',
                  'org.freedesktop.DBus.ListNames'], raiseonerr=False)
+            # poke at certmonger directly
+            run(['getcert', 'list'], raiseonerr=False)
 
             dir = paths.PKI_TOMCAT_ALIAS_DIR
             criteria = {'cert-storage': 'NSSDB', 'key-storage': 'NSSDB',
