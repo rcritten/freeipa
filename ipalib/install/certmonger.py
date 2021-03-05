@@ -615,7 +615,15 @@ def stop_tracking(secdir=None, request_id=None, nickname=None, certfile=None):
         logger.error('Failed to get request: %s', e)
         raise
     if request:
-        run_with_retry(request.parent.obj_if.remove_request, request.path)
+        try:
+            run_with_retry(request.parent.obj_if.remove_request, request.path)
+        except dbus.exceptions.DBusException as e:
+            if e._dbus_error_name == \
+                    'org.fedorahosted.certmonger.no_such_entry':
+                logger.error('no_such_entry, continuing')
+                return
+            else:
+                raise
 
 
 def modify(request_id, ca=None, profile=None, template_v2=None):
