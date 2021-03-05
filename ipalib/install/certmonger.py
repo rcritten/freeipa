@@ -812,7 +812,7 @@ def run_with_retry(f, *args):
     for i in range(15):
         if args:
             logger.debug(
-                'Attempt %d of %s %s', i + 1, f._method_name, *args
+                'Attempt %d of %s %s', i + 1, f._method_name, args[0]
             )
         else:
             logger.debug('Attempt %d of %s', i + 1, f._method_name)
