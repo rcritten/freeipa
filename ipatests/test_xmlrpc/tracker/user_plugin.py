@@ -64,7 +64,8 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
 
     primary_keys = {u'uid', u'dn'}
 
-    def __init__(self, name=None, givenname=None, sn=None, **kwargs):
+    def __init__(self, name=None, givenname=None, sn=None, quiet=False,
+                 **kwargs):
         """ Check for non-empty unicode string for the required attributes
         in the init method """
 
@@ -80,6 +81,7 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
         self.givenname = unicode(givenname)
         self.sn = unicode(sn)
         self.dn = DN(('uid', self.uid), api.env.container_user, api.env.basedn)
+        self.quiet = quiet
 
         self.kwargs = kwargs
 
@@ -140,6 +142,7 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
 
     def make_update_command(self, updates):
         """ Make function that updates user using user-mod """
+        updates['quiet'] = self.quiet
         return self.make_command('user_mod', self.uid, **updates)
 
     def make_undelete_command(self):
@@ -227,6 +230,8 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
         result = command()
 
         for key, value in updates.items():
+            if key == 'quiet':
+                continue
             if value is None or value == '':
                 del self.attrs[key]
             elif key == 'rename':
@@ -241,6 +246,8 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
                 else:
                     self.attrs[key] = [value]
         for key, value in expected_updates.items():
+            if key == 'quiet':
+                continue
             if value is None or value == '':
                 del self.attrs[key]
             else:
@@ -342,17 +349,24 @@ class UserTracker(CertmapdataMixin, KerberosAliasMixin, Tracker):
 
     def check_update(self, result, extra_keys=()):
         """ Check 'user-mod' command result """
-        expected = self.filter_attrs(self.update_keys | set(extra_keys))
-        if expected[u'nsaccountlock'] == [u'true']:
-            expected[u'nsaccountlock'] = True
-        elif expected[u'nsaccountlock'] == [u'false']:
-            expected[u'nsaccountlock'] = False
+        if not self.quiet:
+            expected = self.filter_attrs(self.update_keys | set(extra_keys))
+            if expected[u'nsaccountlock'] == [u'true']:
+                expected[u'nsaccountlock'] = True
+            elif expected[u'nsaccountlock'] == [u'false']:
+                expected[u'nsaccountlock'] = False
 
-        assert_deepequal(dict(
-            value=self.uid,
-            summary=u'Modified user "%s"' % self.uid,
-            result=expected
-        ), result)
+            assert_deepequal(dict(
+                value=self.uid,
+                summary=u'Modified user "%s"' % self.uid,
+                result=expected
+            ), result)
+        else:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
 
     def check_enable(self, result):
         """ Check result of enable user operation """

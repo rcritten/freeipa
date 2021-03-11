@@ -33,7 +33,13 @@ renamedhostgroup1 = u'renamedhostgroup1'
 
 @pytest.fixture(scope='class')
 def hostgroup(request, xmlrpc_setup):
-    tracker = HostGroupTracker(name=u'hostgroup')
+    try:
+        name, quiet = request.param
+    except AttributeError:
+        # No SubRequest is defined
+        name = 'hostgroup'
+        quiet = False
+    tracker = HostGroupTracker(name=u'hostgroup', quiet=quiet)
     return tracker.make_fixture(request)
 
 
@@ -67,6 +73,19 @@ def ipaservers(request, xmlrpc_setup):
     tracker.exists = True
     tracker.track_create()
     return tracker
+
+
+# Test data for the parameterized test cases. These cases will be run
+# for each of these hostgroups, differing in name and quiet. The
+# hostgroup is removed when the test is complete so later tests should
+# not rely on the existence of previously created parameterized host.
+#
+# The quiet option only applies to add/mod commands so those tests
+# that test other methods are not parameterized.
+testdata = [
+    ('hostgroup', False),
+    ('quiethostgroup', True),
+]
 
 
 class TestNonexistentHostGroup(XMLRPC_test):
@@ -107,10 +126,12 @@ class TestHostGroup(XMLRPC_test):
                 error=u'may only include letters, numbers, _, -, and .')):
             command()
 
+    @pytest.mark.parametrize("hostgroup", testdata, indirect=True)
     def test_create_hostgroup(self, hostgroup):
         """ Create hostgroup """
         hostgroup.create()
 
+    @pytest.mark.parametrize("hostgroup", testdata, indirect=True)
     def test_create_duplicate_hostgroup(self, hostgroup):
         """ Try to create duplicate hostgroup """
         hostgroup.ensure_exists()
@@ -123,6 +144,7 @@ class TestHostGroup(XMLRPC_test):
     def test_rename_hostgroup(self, hostgroup):
         """ Rename a hostgroup and than rename it back """
         origname = hostgroup.cn
+        hostgroup.ensure_exists()
 
         command = hostgroup.make_command(
             'hostgroup_mod', *[hostgroup.cn],

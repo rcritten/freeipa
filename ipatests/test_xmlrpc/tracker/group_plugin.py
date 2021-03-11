@@ -28,11 +28,12 @@ class GroupTracker(Tracker):
 
     add_member_keys = retrieve_keys | {u'description'}
 
-    def __init__(self, name, description=u'Group desc'):
+    def __init__(self, name, description=u'Group desc', quiet=False):
         super(GroupTracker, self).__init__(default_version=None)
         self.cn = name
         self.description = description
         self.dn = get_group_dn(self.cn)
+        self.quiet = quiet
 
     def make_create_command(self, nonposix=False, external=False,
                             *args, **kwargs):
@@ -40,6 +41,7 @@ class GroupTracker(Tracker):
         return self.make_command('group_add', self.cn,
                                  description=self.description,
                                  nonposix=nonposix, external=external,
+                                 quiet=self.quiet,
                                  *args, **kwargs)
 
     def make_delete_command(self):
@@ -56,7 +58,8 @@ class GroupTracker(Tracker):
 
     def make_update_command(self, updates):
         """ Make function that updates a group using 'group-mod' """
-        return self.make_command('group_mod', self.cn, **updates)
+        return self.make_command('group_mod', self.cn, quiet=self.quiet,
+                                 **updates)
 
     def make_add_member_command(self, options={}):
         """ Make function that adds a member to a group """
@@ -231,6 +234,19 @@ class GroupTracker(Tracker):
 
     def check_create(self, result):
         """ Checks 'group_add' command result """
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            # Retrieve the entry to ensure it was added
+            command = self.make_retrieve_command(all=True)
+            result = command()
+            expected = self.filter_attrs(self.create_keys)
+            # Fake the summary
+            result['summary'] = 'Added group "%s"' % self.cn
+
         assert_deepequal(dict(
             value=self.cn,
             summary=u'Added group "%s"' % self.cn,
@@ -274,6 +290,20 @@ class GroupTracker(Tracker):
 
     def check_update(self, result, extra_keys={}):
         """ Checks 'group_mod' command result """
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            # Retrieve the entry to ensure it was added
+            command = self.make_retrieve_command()
+            result = command()
+            result['result'].pop('dn')
+            expected = self.filter_attrs(self.retrieve_keys)
+            # Fake the summary
+            result['summary'] = 'Modified group "%s"' % self.cn
+
         assert_deepequal(dict(
             value=self.cn,
             summary=u'Modified group "%s"' % self.cn,

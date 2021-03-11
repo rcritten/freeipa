@@ -30,11 +30,14 @@ class AutomemberTracker(Tracker):
         {u'automemberinclusiveregex', u'automembertargetgroup'}
     add_condition_negative_keys = {u'automemberinclusiveregex'}
 
-    def __init__(self, groupname, membertype, description=u'Automember desc'):
+    def __init__(self, groupname, membertype, description=u'Automember desc',
+                 quiet=False
+    ):
         super(AutomemberTracker, self).__init__(default_version=None)
         self.cn = groupname
         self.description = description
         self.membertype = membertype
+        self.quiet = quiet
         self.dn = DN(('cn', self.cn), ('cn', self.membertype.title()),
                      ('cn', 'automember'), ('cn', 'etc'), api.env.basedn)
 
@@ -43,6 +46,7 @@ class AutomemberTracker(Tracker):
         return self.make_command('automember_add', self.cn,
                                  description=self.description,
                                  type=self.membertype,
+                                 quiet=self.quiet,
                                  *args, **kwargs)
 
     def make_delete_command(self):
@@ -66,7 +70,8 @@ class AutomemberTracker(Tracker):
     def make_update_command(self, updates):
         """ Make function that updates an automember using 'automember-mod' """
         return self.make_command('automember_mod', self.cn,
-                                 type=self.membertype, **updates)
+                                 type=self.membertype, quiet=self.quiet,
+                                 **updates)
 
     def make_add_member_command(self, options={}):
         """ Make function that adds a member to an automember """
@@ -241,6 +246,19 @@ class AutomemberTracker(Tracker):
 
     def check_create(self, result):
         """ Checks 'automember_add' command result """
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            # Retrieve the entry to ensure it was added
+            command = self.make_retrieve_command(all=True)
+            result = command()
+            expected = self.filter_attrs(self.create_keys)
+            # Fake the summary
+            result['summary'] = 'Added automember rule "%s"' % self.cn
+
         assert_deepequal(dict(
             value=self.cn,
             summary=u'Added automember rule "%s"' % self.cn,
@@ -284,6 +302,19 @@ class AutomemberTracker(Tracker):
 
     def check_update(self, result, extra_keys={}):
         """ Checks 'automember_mod' command result """
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            # Retrieve the entry to ensure it was added
+            command = self.make_retrieve_command(all=True)
+            result = command()
+            expected = self.filter_attrs(self.create_keys)
+            # Fake the summary
+            result['summary'] = 'Modified automember rule "%s"' % self.cn
+
         assert_deepequal(dict(
             value=self.cn,
             summary=u'Modified automember rule "%s"' % self.cn,

@@ -33,18 +33,20 @@ class HostGroupTracker(Tracker):
         u'mepmanagedentry',
     }
 
-    def __init__(self, name, description=u'HostGroup desc'):
+    def __init__(self, name, description=u'HostGroup desc', quiet=False):
         super(HostGroupTracker, self).__init__(default_version=None)
         self.cn = name
         self.description = description
         self.dn = DN(('cn', self.cn), ('cn', 'hostgroups'),
                      ('cn', 'accounts'), api.env.basedn)
+        self.quiet = quiet
 
     def make_create_command(self,
                             force=True, *args, **kwargs):
         """ Make function that creates a hostgroup using 'hostgroup-add' """
         return self.make_command('hostgroup_add', self.cn,
                                  description=self.description,
+                                 quiet=self.quiet,
                                  *args, **kwargs)
 
     def make_delete_command(self):
@@ -62,7 +64,8 @@ class HostGroupTracker(Tracker):
 
     def make_update_command(self, updates):
         """ Make function that updates a hostgroup using 'hostgroup-mod' """
-        return self.make_command('hostgroup_mod', self.cn, **updates)
+        return self.make_command('hostgroup_mod', self.cn, quiet=self.quiet,
+                                 **updates)
 
     def make_add_member_command(self, options={}):
         """ Make function that adds a member to a hostgroup """
@@ -161,11 +164,24 @@ class HostGroupTracker(Tracker):
 
     def check_create(self, result):
         """ Checks 'hostgroup_add' command result """
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            # Retrieve the entry to ensure it was added
+            command = self.make_retrieve_command(all=True)
+            result = command()
+            expected = self.filter_attrs(self.create_keys)
+            # Fake the summary
+            result['summary'] = 'Added hostgroup "%s"' % self.cn
+
         assert_deepequal(dict(
             value=self.cn,
             summary=u'Added hostgroup "%s"' % self.cn,
             result=self.filter_attrs(self.create_keys)
-            ), result)
+        ), result)
 
     def check_delete(self, result):
         """ Checks 'hostgroup_del' command result """
@@ -204,11 +220,18 @@ class HostGroupTracker(Tracker):
 
     def check_update(self, result, extra_keys={}):
         """ Checks 'hostgroup_mod' command result """
-        assert_deepequal(dict(
-            value=self.cn,
-            summary=u'Modified hostgroup "%s"' % self.cn,
-            result=self.filter_attrs(self.update_keys | set(extra_keys))
-        ), result)
+        if not self.quiet:
+            assert_deepequal(dict(
+                value=self.cn,
+                summary=u'Modified hostgroup "%s"' % self.cn,
+                result=self.filter_attrs(self.update_keys | set(extra_keys))
+            ), result)
+        else:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
 
     def check_add_member(self, result):
         """ Checks 'hostgroup_add_member' command result """

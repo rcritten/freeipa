@@ -154,9 +154,15 @@ def host5(request, xmlrpc_setup):
 
 @pytest.fixture(scope='class')
 def automember_group(request, group1):
+    try:
+        name, quiet = request.param
+    except AttributeError:
+        # No SubRequest is defined
+        name = group1.cn
+        quiet = False
     tracker = AutomemberTracker(groupname=group1.cn,
                                 description=u'Automember group tracker',
-                                membertype=u'group')
+                                membertype=u'group', quiet=quiet)
     return tracker.make_fixture(request)
 
 
@@ -191,6 +197,19 @@ def automember_hostgroup4(request, hostgroup4):
                                 description=u'Automember hostgroup tracker 4',
                                 membertype=u'hostgroup')
     return tracker.make_fixture(request)
+
+
+# Test data for the parameterized test cases. These cases will be run
+# for each of these rules, differing in name and quiet. The rule
+# is removed when the test is complete so later tests should not
+# rely on the existence of previously created parameterized rule.
+#
+# The quiet option only applies to add/mod commands so those tests
+# that test other methods are not parameterized.
+testdata = [
+    ('tgroup1', False),
+    ('quietgroup1', True),
+]
 
 
 @pytest.mark.tier1
@@ -242,11 +261,12 @@ class TestCRUDFOnAutomember(XMLRPC_test):
         automember_group.update(dict(description=u'New description'))
         automember_group.delete()
 
+    @pytest.mark.parametrize("automember_hostgroup", testdata, indirect=True)
     def test_basic_ops_on_hostgroup_automember(self, automember_hostgroup,
                                                hostgroup1):
         """ Test create, retrieve, find, update,
         and delete operations on a hostgroup automember """
-        hostgroup1.create()
+        hostgroup1.ensure_exists()
         automember_hostgroup.create()
         automember_hostgroup.retrieve()
         automember_hostgroup.find()

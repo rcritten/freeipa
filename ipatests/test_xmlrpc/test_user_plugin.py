@@ -93,7 +93,14 @@ def user_min(request, xmlrpc_setup):
 
 @pytest.fixture(scope='class')
 def user(request, xmlrpc_setup):
-    tracker = UserTracker(name=u'user1', givenname=u'Test', sn=u'User1')
+    try:
+        name, quiet = request.param
+    except AttributeError:
+        # No SubRequest is defined
+        name = 'user1'
+        quiet = False
+    tracker = UserTracker(name=name, givenname=u'Test', sn=u'User1',
+                          quiet=quiet)
     return tracker.make_fixture(request)
 
 
@@ -162,6 +169,19 @@ def group(request, xmlrpc_setup):
     return tracker.make_fixture(request)
 
 
+# Test data for the parameterized test cases. These cases will be run
+# for each of these users, differing in name and quiet. The user
+# is removed when the test is complete so later tests should not
+# rely on the existence of previously created parameterized user.
+#
+# The quiet option only applies to mod commands for users so those
+# tests that test other methods are not parameterized.
+testdata = [
+    ('user1', False),
+    ('quietuser1', True),
+]
+
+
 @pytest.mark.tier1
 class TestNonexistentUser(XMLRPC_test):
     def test_retrieve_nonexistent(self, user):
@@ -172,6 +192,7 @@ class TestNonexistentUser(XMLRPC_test):
                 reason=u'%s: user not found' % user.uid)):
             command()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_update_nonexistent(self, user):
         """ Try to update a non-existent user """
         user.ensure_missing()
@@ -380,6 +401,7 @@ class TestActive(XMLRPC_test):
 
 @pytest.mark.tier1
 class TestUpdate(XMLRPC_test):
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_set_virtual_attribute(self, user):
         """ Try to assign an invalid virtual attribute """
         attr = 'random'
@@ -391,6 +413,7 @@ class TestUpdate(XMLRPC_test):
                 info=u'attribute "%s" not allowed' % attr)):
             command()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_update(self, user):
         """ Update a user attribute """
         user.update(dict(givenname=u'Franta'))
@@ -462,6 +485,7 @@ class TestUpdate(XMLRPC_test):
                 error=u'invalid SSH public key')):
             command()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_set_ipauserauthtype(self, user):
         """ Set ipauserauthtype to all valid types and than back to None """
         user.ensure_exists()
@@ -473,6 +497,7 @@ class TestUpdate(XMLRPC_test):
         user.update(dict(ipauserauthtype=None))
         user.delete()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_set_random_password(self, user):
         """ Modify user with random password """
         user.ensure_exists()
@@ -498,6 +523,7 @@ class TestUpdate(XMLRPC_test):
                 error=u'may only include letters, numbers, _, -, . and $')):
             command()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_add_radius_username(self, user):
         """ Test for ticket 7569: Try to add --radius-username """
         user.ensure_exists()
@@ -962,6 +988,7 @@ class TestAdmins(XMLRPC_test):
 
 @pytest.mark.tier1
 class TestPreferredLanguages(XMLRPC_test):
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_invalid_preferred_languages(self, user):
         """ Try to assign various invalid preferred languages to user """
         user.ensure_exists()
@@ -978,6 +1005,7 @@ class TestPreferredLanguages(XMLRPC_test):
                 command()
         user.delete()
 
+    @pytest.mark.parametrize("user", testdata, indirect=True)
     def test_valid_preferred_languages(self, user):
         """ Update user with different preferred languages """
         for validlanguage in validlanguages:
@@ -1121,6 +1149,7 @@ class TestDeniedBindWithExpiredPrincipal(XMLRPC_test):
         self.connection.simple_bind_s(
             str(get_user_dn(user.uid)), self.password
         )
+
 
 # This set of functions (get_*, upg_check, not_upg_check)
 # is mostly for legacy purposes here, tests using UserTracker

@@ -54,7 +54,7 @@ class HostTracker(KerberosAliasMixin, Tracker):
     }
     find_all_keys = retrieve_all_keys - {'has_keytab', 'has_password'}
 
-    def __init__(self, name, fqdn=None, default_version=None):
+    def __init__(self, name, fqdn=None, default_version=None, quiet=False):
         super(HostTracker, self).__init__(default_version=default_version)
 
         self.shortname = name
@@ -67,6 +67,7 @@ class HostTracker(KerberosAliasMixin, Tracker):
 
         self.description = u'Test host <%s>' % name
         self.location = u'Undisclosed location <%s>' % name
+        self.quiet = quiet
 
     def make_create_command(self, force=True):
         """Make function that creates this host using host_add"""
@@ -93,7 +94,8 @@ class HostTracker(KerberosAliasMixin, Tracker):
 
     def make_update_command(self, updates):
         """Make function that modifies the host using host_mod"""
-        return self.make_command('host_mod', self.fqdn, **updates)
+        return self.make_command('host_mod', self.fqdn, quiet=self.quiet,
+                                 **updates)
 
     def create(self, force=True):
         """Helper function to create an entry and check the result"""
@@ -133,11 +135,18 @@ class HostTracker(KerberosAliasMixin, Tracker):
 
     def check_create(self, result):
         """Check `host_add` command result"""
-        assert_deepequal(dict(
-            value=self.fqdn,
-            summary=u'Added host "%s"' % self.fqdn,
-            result=self.filter_attrs(self.create_keys),
-        ), result)
+        if not self.quiet:
+            assert_deepequal(dict(
+                value=self.fqdn,
+                summary=u'Added host "%s"' % self.fqdn,
+                result=self.filter_attrs(self.create_keys),
+            ), result)
+        else:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
 
     def check_delete(self, result):
         """Check `host_del` command result"""
@@ -174,6 +183,18 @@ class HostTracker(KerberosAliasMixin, Tracker):
 
     def check_update(self, result, extra_keys=()):
         """Check `host_update` command result"""
+        if self.quiet:
+            assert_deepequal(dict(
+                value="",
+                result=dict(),),
+                result
+            )
+            command = self.make_retrieve_command(all=True)
+            result = command()
+            expected = self.filter_attrs(self.create_keys)
+            # Fake the summary
+            result['summary'] = 'Added host "%s"' % self.fqdn
+
         assert_deepequal(dict(
             value=self.fqdn,
             summary=u'Modified host "%s"' % self.fqdn,

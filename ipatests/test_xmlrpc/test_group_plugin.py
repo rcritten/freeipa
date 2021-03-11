@@ -42,7 +42,13 @@ external_sid1 = u'S-1-1-123456-789-1'
 
 @pytest.fixture(scope='class')
 def group(request, xmlrpc_setup):
-    tracker = GroupTracker(name=u'testgroup1', description=u'Test desc1')
+    try:
+        name, quiet = request.param
+    except AttributeError:
+        # No SubRequest is defined
+        name = 'testgroup1'
+        quiet = False
+    tracker = GroupTracker(name=name, description=u'Test desc1', quiet=quiet)
     return tracker.make_fixture(request)
 
 
@@ -108,12 +114,27 @@ def trustadmins(request, xmlrpc_setup):
     return tracker
 
 
+# Test data for the parameterized test cases. These cases will be run
+# for each of these groups, differing in name and quiet. The group
+# is removed when the test is complete so later tests should not
+# rely on the existence of previously created parameterized group.
+#
+# The quiet option only applies to add/mod commands so those tests
+# that test other methods are not parameterized.
+testdata = [
+    ('testgroup1', False),
+    ('quietgroup1', True),
+]
+
+
 @pytest.mark.tier1
 class TestGroup(XMLRPC_test):
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_create(self, group):
         """ Create a group """
         group.create()
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_create_duplicate(self, group):
         """ Try to create a duplicate group """
         group.ensure_exists()
@@ -123,10 +144,12 @@ class TestGroup(XMLRPC_test):
                 message=u'group with name "%s" already exists' % group.cn)):
             command()
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_retrieve(self, group):
         """ Retrieve a group """
         group.retrieve()
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_update(self, group):
         """ Update a group with new description
         and perform retrieve command to verify the update """
@@ -136,6 +159,8 @@ class TestGroup(XMLRPC_test):
     def test_rename(self, group):
         """ Rename a group and than rename it back """
         origname = group.cn
+
+        group.ensure_exists()
 
         command = group.make_command('group_mod', *[group.cn],
                                      **dict(setattr=u'cn=%s' % renamedgroup1))
@@ -151,6 +176,7 @@ class TestGroup(XMLRPC_test):
         group.check_update(result)
         group.cn = origname
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_convert_posix_to_external(self, group):
         """ Try to convert a posix group to external """
         command = group.make_update_command(dict(external=True))
@@ -359,6 +385,7 @@ class TestNonexistentGroup(XMLRPC_test):
                 reason=u'%s: group not found' % group.cn)):
             command()
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_update_nonexistent(self, group):
         """ Try to update a non-existent group """
         group.ensure_missing()
@@ -376,6 +403,7 @@ class TestNonexistentGroup(XMLRPC_test):
                 reason=u'%s: group not found' % group.cn)):
             command()
 
+    @pytest.mark.parametrize("group", testdata, indirect=True)
     def test_rename_nonexistent(self, group):
         """ Try to rename a non-existent user """
         group.ensure_missing()
