@@ -203,12 +203,11 @@ def _get_requests(criteria):
     requests = []
     requests_paths = []
     if 'nickname' in criteria:
-        request_path = run_with_retry(cm.obj_if.find_request_by_nickname,
-                                      criteria['nickname'])
+        request_path = cm.obj_if.find_request_by_nickname(criteria['nickname'])
         if request_path:
             requests_paths = [request_path]
     else:
-        requests_paths = run_with_retry(cm.obj_if.get_requests)
+        requests_paths = cm.obj_if.get_requests()
 
     for request_path in requests_paths:
         request = _cm_dbus_object(cm.bus, cm, request_path, DBUS_CM_REQUEST_IF,
@@ -615,15 +614,20 @@ def stop_tracking(secdir=None, request_id=None, nickname=None, certfile=None):
         logger.error('Failed to get request: %s', e)
         raise
     if request:
-        try:
-            run_with_retry(request.parent.obj_if.remove_request, request.path)
-        except dbus.exceptions.DBusException as e:
-            if e._dbus_error_name == \
-                    'org.fedorahosted.certmonger.no_such_entry':
-                logger.error('no_such_entry, continuing')
-                return
-            else:
-                raise
+        exc = None
+        for _i in range(5):
+            try:
+                request.parent.obj_if.remove_request(request.path)
+            except dbus.exceptions.DBusException as e:
+                if e._dbus_error_name == \
+                        'org.fedorahosted.certmonger.no_such_entry':
+                    logger.error('no_such_entry, continuing')
+                    return
+                else:
+                    request.bus.close()
+                    exc = e
+                    request = _get_request(criteria)
+        raise exc
 
 
 def modify(request_id, ca=None, profile=None, template_v2=None):
