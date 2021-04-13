@@ -510,6 +510,7 @@ class pwpolicy(LDAPObject):
 @register()
 class pwpolicy_add(LDAPCreate):
     __doc__ = _('Add a new group password policy.')
+    no_quiet = True
 
     def get_args(self):
         yield self.obj.primary_key.clone(attribute=True, required=True)
@@ -564,6 +565,7 @@ class pwpolicy_del(LDAPDelete):
 @register()
 class pwpolicy_mod(LDAPUpdate):
     __doc__ = _('Modify a group password policy.')
+    no_quiet = True
 
     def execute(self, cn=None, **options):
         return super(pwpolicy_mod, self).execute(cn, **options)

@@ -132,6 +132,7 @@ class Create(Method):
     """
 
     has_output = output.standard_entry
+    no_quiet = False
 
     def __clone(self, param, **kw):
         if 'optional_create' in param.flags:
@@ -192,6 +193,7 @@ class Update(PKQuery):
     """
 
     has_output = output.standard_entry
+    no_quiet = False
 
     def get_options(self):
         if self.extra_options_first:

@@ -279,6 +279,8 @@ class stageuser_add(baseuser_add):
 
     has_output_params = baseuser_add.has_output_params + stageuser_output_params
 
+    no_quiet = True
+
     takes_options = LDAPCreate.takes_options + (
         Bool(
             'from_delete?',

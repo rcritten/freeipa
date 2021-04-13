@@ -500,6 +500,8 @@ class Command(HasParam):
         if isinstance(ret, dict):
             for message in self.context.__messages:
                 messages.add_message(options['version'], ret, message)
+        if options.get('quiet', False):
+            return ret
         if (
             isinstance(ret, dict)
             and 'summary' in self.output
@@ -981,6 +983,14 @@ class Command(HasParam):
                     exclude='webui',
                     flags=['no_output'],
                 )
+                if self.name[-4:] in ('_add', '_mod') and not self.no_quiet:
+                    yield Flag(
+                        'quiet',
+                        cli_name='quiet',
+                        doc=_('Do not return any data.'),
+                        exclude='webui',
+                        flags=['no_output'],
+                    )
                 break
         yield Str('version?',
             doc=_('Client version. Used to determine if server will accept request.'),
@@ -1063,6 +1073,9 @@ class Command(HasParam):
         rv = 0
 
         self.log_messages(output)
+
+        if options.get('quiet', False):
+            return rv
 
         order = []
         labels = {}

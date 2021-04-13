@@ -899,6 +899,7 @@ class ForwardRecord(DNSRecord):
             flags=['no_update']
         ),
     )
+    no_quiet = True
 
     def dnsrecord_add_pre_callback(self, ldap, dn, entry_attrs, attrs_list, *keys, **options):
         assert isinstance(dn, DN)
@@ -2740,6 +2741,7 @@ class dnszone(DNSZoneBase):
 @register()
 class dnszone_add(DNSZoneBase_add):
     __doc__ = _('Create new DNS zone (SOA record).')
+    no_quiet = True
 
     takes_options = DNSZoneBase_add.takes_options + (
         Flag('force',

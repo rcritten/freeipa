@@ -491,6 +491,7 @@ class user(baseuser):
 @register()
 class user_add(baseuser_add):
     __doc__ = _('Add a new user.')
+    no_quiet = True
 
     msg_summary = _('Added user "%(value)s"')
 

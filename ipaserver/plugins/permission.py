@@ -985,6 +985,7 @@ class permission_add_noaci(baseldap.LDAPCreate):
 @register()
 class permission_add(baseldap.LDAPCreate):
     __doc__ = _('Add a new permission.')
+    no_quiet = True
 
     msg_summary = _('Added permission "%(value)s"')
 
@@ -1090,6 +1091,7 @@ class permission_mod(baseldap.LDAPUpdate):
     __doc__ = _('Modify a permission.')
 
     msg_summary = _('Modified permission "%(value)s"')
+    no_quiet = True
 
     def execute(self, *keys, **options):
         context.filter_ops = self.obj.preprocess_options(

@@ -675,6 +675,7 @@ class host_add(LDAPCreate):
             label=_('IP Address'),
         ),
     )
+    no_quiet = True
 
     def pre_callback(self, ldap, dn, entry_attrs, attrs_list, *keys, **options):
         assert isinstance(dn, DN)

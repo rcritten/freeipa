@@ -220,6 +220,7 @@ class server(LDAPObject):
 @register()
 class server_mod(LDAPUpdate):
     __doc__ = _('Modify information about an IPA server.')
+    no_quiet = True
 
     msg_summary = _('Modified IPA server "%(value)s"')
 

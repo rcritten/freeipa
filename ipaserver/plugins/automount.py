@@ -259,6 +259,7 @@ class automountlocation(LDAPObject):
 @register()
 class automountlocation_add(LDAPCreate):
     __doc__ = _('Create a new automount location.')
+    no_quiet = True
 
     msg_summary = _('Added automount location "%(value)s"')
 
@@ -630,6 +631,7 @@ class automountkey_add(LDAPCreate):
         assert isinstance(dn, DN)
         options.pop('add_operation', None)
         options.pop('description', None)
+        options.pop('quiet', None)
         self.obj.check_key_uniqueness(keys[-2], keys[-1], **options)
         return dn
 
