@@ -1515,7 +1515,11 @@ class ra_lightweight_ca(APIClient):
         except Exception as e:
             self.raise_certificate_operation_exception(
                 'read_ca_cert', e)
-        cert = self.client.get_cert(subca.aid, "PEM")
+        try:
+            cert = self.client.get_cert(subca.aid, "PEM")
+        except Exception as e:
+            self.raise_certificate_operation_exception(
+                'read_ca_cert', e)
         c = x509.load_pem_x509_certificate(cert.encode("utf-8"))
         return c.public_bytes(x509.Encoding.DER)
 
